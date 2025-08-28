@@ -4,8 +4,11 @@ void Subsystem::functionHandler() {
     std::lock_guard<pros::Mutex> lock(queueMutex);
     while (!functionQueue.empty()) {
         auto func = functionQueue.front();
-        func();
-        functionQueue.erase(functionQueue.begin());
+        if (functionID != prevFunctionID) {
+            func(); 
+            prevFunctionID = functionID; 
+        }
+        functionQueue.erase(functionQueue.begin()); 
     }
 }
 

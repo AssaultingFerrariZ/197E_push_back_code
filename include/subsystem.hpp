@@ -13,7 +13,11 @@
 class Subsystem {
 private:
     std::vector<std::function<void()>> functionQueue;
-    pros::Mutex queueMutex; // 🔐
+    pros::Mutex queueMutex;
+
+protected:
+    int functionID = -1;
+    int prevFunctionID = -1;
 
 public:
     virtual ~Subsystem() = default;

@@ -19,13 +19,13 @@ private:
     int topSgn = 1;
 
     void setSigns();
+    void move(int velocity);
 
 public:
     Intake(std::vector<pros::Motor*> _motors);
 
     std::vector<pros::Motor*> getMotors() const;
 
-    void move(int velocity);
     void load(int velocity);
     void scoreBottom(int velocity);
     void scoreTop(int velocity);

@@ -1,4 +1,5 @@
 #include "intake.hpp"
+#include "definitions.hpp"
 
 Intake::Intake(std::vector<pros::Motor*> _motors)
     : motors(_motors),
@@ -19,8 +20,8 @@ void Intake::setSigns() {
             break;
         case LOAD:
             pickupSgn = 1;
-            backSgn = -1;
-            topSgn = 0;
+            backSgn = 1;
+            topSgn = 1;
             break;
         case TOP:
             pickupSgn = 1;
@@ -41,7 +42,6 @@ void Intake::setSigns() {
 }
 
 void Intake::move(int velocity) {
-    this->clearQueue();
     this->addFunction([this, velocity] {
         setSigns();
         pickupStage->move(pickupSgn * velocity);
@@ -53,25 +53,35 @@ void Intake::move(int velocity) {
 
 void Intake::load(int velocity) {
     intakeScoreConfig = LOAD;
+    this->functionID = 1;
+    bunnyEars.set_value(true);
     move(velocity);
 }
 
 void Intake::scoreBottom(int velocity) {
     intakeScoreConfig = BOTTOM;
+    this->functionID = 2;
+    bunnyEars.set_value(false);
     move(velocity);
 }
 
 void Intake::scoreTop(int velocity) {
     intakeScoreConfig = TOP;
+    this->functionID = 3;
+    bunnyEars.set_value(false);
     move(velocity);
 }
 
 void Intake::scoreMiddle(int velocity) {
     intakeScoreConfig = MIDDLE;
+    this->functionID = 4;
+    bunnyEars.set_value(false);
     move(velocity);
 }
 
 void Intake::stop() {
     intakeScoreConfig = STOP;
+    this->functionID = 5;
+    bunnyEars.set_value(false);
     move(0);
 }

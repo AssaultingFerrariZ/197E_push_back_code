@@ -1,10 +1,17 @@
 #include "main.h"
+#include "intake.hpp"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "definitions.hpp"
 #include "autons.hpp"
+#include "pros/colors.hpp"
 #include "pros/llemu.hpp"
+#include "pros/misc.h"
+#include "pros/optical.h"
+#include "pros/rtos.hpp"
 #include "subsystem.hpp"
+#include <cstdio>
 #include <memory>
+#include <ostream>
 
 
 /**
@@ -44,28 +51,14 @@ float wrap360(float angle) {
 
 
 
-
-
+SubsystemHandler* handler = NULL;
+// SubsystemPtr screen(new Subsystem());
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
     std::cout<<"Initialized Program" << std::endl;
     chassis->calibrate();
-    pros::Task screenTask( [&] {
-        while (1) { // infinite loop
-            // print measurements from the horizontal sensor
-            // pros::lcd::print(0, "Horizontal Sensor: %i", horizontal_sensor.get_position());
-            // // print measurements from the vertical sensor
-            // pros::lcd::print(1, "Veritcal Sensor: %i", veritcal_sensor.get_position());
-            
-            pros::lcd::print(0, "%.2f Heading", wrap360(chassis->getPose().theta));  // Prints status of the emulated screen LCDs
-			pros::lcd::print(1, "%.2f X", chassis->getPose().x);  // Prints status of the emulated screen LCDs
-			pros::lcd::print(2, "%.2f Y", chassis->getPose().y);  
-
-            pros::delay(20); // delay to save resources. DO NOT REMOVE
-
-        }
-    });
-	SubsystemHandler handler({intake});
+	colorSensor.set_integration_time(20);
+	handler = new SubsystemHandler({intake});
     controller.clear();
 }
 
@@ -102,6 +95,7 @@ void autonomous() {
 	autoSelected = true;
 	autoActive = true;
 	auto selection = autonSelectorMap.find(currentAutoSelection);
+
 	if (selection != autonSelectorMap.end()) {
 		selection->second.second();
 	}
@@ -114,7 +108,15 @@ void opcontrol() {
     autoActive = false;
     chassis->cancelAllMotions();
     pros::delay(20);
-    pros::lcd::print(3, "This is now opcontrol!");
+    // pros::lcd::print(3, "This is now opcontrol!");
+	pros::Task screenTask([&] {
+		while (1) {
+			pros::lcd::print(3, "%.2f Heading", wrap360(chassis->getPose().theta));  // Prints status of the emulated screen LCDs
+			pros::lcd::print(1, "%.2f X", chassis->getPose().x);  // Prints status of the emulated screen LCDs
+			pros::lcd::print(2, "%.2f Y", chassis->getPose().y); 
+			pros::delay(20);
+		}
+	});
     if (!autoSelected) controller.print(2, 1, autonSelectorMap[currentAutoSelection].first.c_str());
 	while (!autoSelected && !pros::c::competition_is_connected()) {
 		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)) {
@@ -132,7 +134,9 @@ void opcontrol() {
 		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
 			controller.clear();
 			autoSelected = true;
+			while (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {}
 		}
+		
 	}
     // loop forever
     while (true) {
@@ -145,14 +149,36 @@ void opcontrol() {
 
 		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
 			intake->load(127);
-		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
 			intake->scoreBottom(127);
-		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
 			intake->scoreTop(127);
-		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
+		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
 			intake->scoreMiddle(127);
 		} else {
 			intake->stop();
+		}
+
+		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
+			std::cout<<"X: "<<chassis->getPose().x<<", Y: "<<chassis->getPose().y<<", Heading: "<<wrap360(chassis->getPose().theta)<<std::endl;
+		}
+		
+		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
+			static bool backLiftState = false;
+			backLiftState = !backLiftState;
+			blockRush.set_value(backLiftState);
+		}
+
+		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
+			static bool scraperState = false;
+			scraperState = !scraperState;
+			matchLoader.set_value(scraperState);
+		}
+
+		if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1)) {
+			static bool bunnyEarsState = false;
+			bunnyEarsState = !bunnyEarsState;
+			bunnyEars.set_value(bunnyEarsState);
 		}
 
 		// delay to save resources
