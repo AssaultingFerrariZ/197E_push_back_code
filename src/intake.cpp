@@ -1,5 +1,6 @@
 #include "intake.hpp"
 #include "definitions.hpp"
+#include "pros/rtos.hpp"
 
 Intake::Intake(std::vector<pros::Motor*> _motors)
     : motors(_motors),
@@ -36,7 +37,7 @@ void Intake::setSigns() {
         case BOTTOM:
             pickupSgn = -1;
             backSgn = -1;
-            topSgn = 0;
+            topSgn = -1;
             break;
     }
 }
@@ -61,7 +62,7 @@ void Intake::load(int velocity) {
 void Intake::scoreBottom(int velocity) {
     intakeScoreConfig = BOTTOM;
     this->functionID = 2;
-    bunnyEars.set_value(false);
+    // intakeLift.set_value(false);
     move(velocity);
 }
 
@@ -69,6 +70,7 @@ void Intake::scoreTop(int velocity) {
     intakeScoreConfig = TOP;
     this->functionID = 3;
     bunnyEars.set_value(false);
+    // pros::delay(250);
     move(velocity);
 }
 
@@ -82,6 +84,6 @@ void Intake::scoreMiddle(int velocity) {
 void Intake::stop() {
     intakeScoreConfig = STOP;
     this->functionID = 5;
-    bunnyEars.set_value(false);
+   // bunnyEars.set_value(false);
     move(0);
 }

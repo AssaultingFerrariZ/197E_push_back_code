@@ -25,7 +25,7 @@ pros::Optical colorSensor(16);
 std::shared_ptr<Intake> intake = std::make_shared<Intake>(std::vector<pros::Motor*>{&pickupStage, &backStage, &topStage});
 
 pros::Imu imu(11); 
-pros::Rotation horizontal_sensor(-1);
+pros::Rotation horizontal_sensor(1);
 pros::Rotation veritcal_sensor(-5);
 
 // Chassis setup
@@ -92,13 +92,15 @@ std::shared_ptr<lemlib::Chassis> chassis(new lemlib::Chassis(drivetrain, lateral
 // Auton Selector setup
 
 std::map<int, std::pair<std::string, std::function<void()>>> autonSelectorMap = {
-    {1, {"PID Tuning", pidTuning}},
-    {2, {"Elims Block Rush", elims9Ball}},
-    {3, {"Solo AWP", soloAWP}}
+    {1, {"Elims Block Rush", elims9Ball}},
+    {2, {"Solo AWP", soloAWP}},
+    {3, {"Skills", skills}},
+    {4, {"Solo AWP Right", soloAWPRight}},
+
 
 };
 
-int currentAutoSelection = 2;
+int currentAutoSelection = 4;
 bool autoSelected = false;
 bool autoActive = false;
 

@@ -109,7 +109,7 @@ void opcontrol() {
     chassis->cancelAllMotions();
     pros::delay(20);
     // pros::lcd::print(3, "This is now opcontrol!");
-	pros::Task screenTask([&] {
+	pros::Task screenTask([] {
 		while (1) {
 			pros::lcd::print(3, "%.2f Heading", wrap360(chassis->getPose().theta));  // Prints status of the emulated screen LCDs
 			pros::lcd::print(1, "%.2f X", chassis->getPose().x);  // Prints status of the emulated screen LCDs
@@ -147,11 +147,11 @@ void opcontrol() {
         // move the robot
         chassis->arcade(leftY, rightX);
 
-		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
 			intake->load(127);
-		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
 			intake->scoreBottom(127);
-		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
 			intake->scoreTop(127);
 		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
 			intake->scoreMiddle(127);
