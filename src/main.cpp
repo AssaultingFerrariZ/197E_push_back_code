@@ -3,15 +3,19 @@
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "definitions.hpp"
 #include "autons.hpp"
+#include "liblvgl/llemu.hpp"
 #include "pros/colors.hpp"
 #include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/optical.h"
 #include "pros/rtos.hpp"
 #include "subsystem.hpp"
+#include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <memory>
 #include <ostream>
+#include <vector>
 
 
 /**
@@ -20,17 +24,16 @@
  * When this callback is fired, it will toggle line 2 of the LCD text between
  * "I was pressed!" and nothing.
  */
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
+
+bool stopIntakeControl = false;
+
+
+template<typename T> std::vector<int> vectorCompare(std::vector<T> v1, std::vector<T> v2) {
+	std::vector<int> error_vals = {};
+	if (v1.size() != v2.size()) return {-1};
+	for (int i = 0; i < v1.size(); i++) error_vals.push_back(std::abs(v2[i]-v1[i]));
+	return error_vals;
 }
-
-
 
 float wrap360(float angle) {
 	while (!(angle >= 0 && angle < 360)) {
@@ -56,9 +59,99 @@ SubsystemHandler* handler = NULL;
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
     std::cout<<"Initialized Program" << std::endl;
-    chassis->calibrate();
+	chassis->calibrate();          // starts odom task
 	colorSensor.set_integration_time(20);
+	// std::cout<<"Hello Prabhas it is i" <<std::endl;
+	// std::cout<<"basically what you want to do is press the down button and immediately start spinning the bot using the stick, after you configure odom"<<std::endl;
+	// std::cout<<"the down button should automate the recording process of the data"<<std::endl;
+	// std::cout<<"alternatively if the automated process does not work, don't worry about it and just spam the up button like we did the first time"<<std::endl;
+	// std::cout<<"\n\n\n"<<std::endl;
+
+	colorSensor.set_led_pwm(100);
+	intake->allianceColor =  Intake::RED;
+	intake->color_sorting_enabled = true;
 	handler = new SubsystemHandler({intake});
+
+
+	pros::Task antiJam([&] {
+		std::cout << "anti jam running" << std::endl;
+		std::vector<int> prevVelocity = intake->get_actual_velocity();
+		bool in_threshold = false;
+		while (1) {
+			for (int i = 0; i < 3; i++) {
+				if (intake->get_target_velocity()[i]-intake->get_actual_velocity()[i] > 590) in_threshold = true;
+			}
+			// std::cout<<"prev velo:  " << prevVelocity<<std::endl;
+
+			auto errors = vectorCompare(prevVelocity, intake->get_actual_velocity());
+			auto nearZero = vectorCompare(prevVelocity, {0, 0, 0});
+
+			if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN))  {
+				std::cout<<"Timestamp: "<<pros::millis()<<", in_threshold: "<<in_threshold<<", vectorCompare: "<<*std::max_element(errors.begin(), errors.end())<<std::endl;
+				std::cout<<"\tPrev Velocity 1, 2, 3: "<<prevVelocity[0]<<", "<<prevVelocity[1]<<", "<<prevVelocity[2]<<std::endl;
+				std::cout<<"\tCurrent Velocity 1, 2, 3: "<<intake->get_actual_velocity()[0]<<", "<<intake->get_actual_velocity()[1]<<", "<<intake->get_actual_velocity()[2]<<std::endl;
+			}
+
+			if (intake->anti_jam_enabled && in_threshold && *std::max_element(errors.begin(), errors.end())>100 && *std::max_element(nearZero.begin(), nearZero.end())<100) {
+				intake->antiJam();
+				in_threshold = false;
+			} 
+			prevVelocity = intake->get_actual_velocity();
+			pros::delay(20);
+		}
+	});
+
+	pros::Task colorSorter([&] {
+		while (!autoSelected) {
+			pros::delay(20);
+		}
+		bool toSort = false;
+		using Intake::RED, Intake::BLUE, Intake::UNKNOWN;
+		while (1) { //infinitely loop the task for the program's lifetime
+			//determine if the ring is red or blue by comparing RGB values
+			Intake::blockColor currentBlock = UNKNOWN;
+			double hue = colorSensor.get_hue();
+			if (colorSensor.get_proximity() > 90) {
+				static int j = 0;
+				if (hue < 65 && hue > 0 && intake->allianceColor == BLUE) {
+					currentBlock = RED;
+					controller.print(0, 0, "red");
+					std::cout<<"registered red"<<std::endl;
+				} 
+				
+				if (hue < 300 && hue > 75 && intake->allianceColor == RED) {
+					currentBlock = BLUE;
+					controller.print(0, 0, "blu");
+					std::cout<<"registered blue"<<std::endl;
+
+				}
+				j++;
+				// controller.print(0, 5, "%d", j);
+				// std::cout<<"toSort: "<<toSort<<std::endl;
+
+				// std::cout<<"colorSortEnabled: "<<intake->color_sorting_enabled<<std::endl;
+
+
+				if (intake->color_sorting_enabled == true && intake->allianceColor != currentBlock && currentBlock != UNKNOWN) toSort = true;
+				
+				pros::lcd::print(1, "toSort: %i", toSort);
+
+				if (toSort) {
+					static int i = 0;
+					i++;
+					controller.print(1, 3 , "%d", i);
+					stopIntakeControl = true;
+					intake->colorSort();
+					stopIntakeControl = false;
+					if (toSort) toSort = false; 
+				}
+			}
+			pros::delay(10);
+		}
+	});	
+
+	
+
     controller.clear();
 }
 
@@ -100,6 +193,8 @@ void autonomous() {
 		selection->second.second();
 	}
 
+	
+
 	autoActive = false;
 }
 
@@ -107,16 +202,10 @@ void autonomous() {
 void opcontrol() {
     autoActive = false;
     chassis->cancelAllMotions();
+	colorSensor.set_led_pwm(100);
     pros::delay(20);
-    // pros::lcd::print(3, "This is now opcontrol!");
-	pros::Task screenTask([] {
-		while (1) {
-			pros::lcd::print(3, "%.2f Heading", wrap360(chassis->getPose().theta));  // Prints status of the emulated screen LCDs
-			pros::lcd::print(1, "%.2f X", chassis->getPose().x);  // Prints status of the emulated screen LCDs
-			pros::lcd::print(2, "%.2f Y", chassis->getPose().y); 
-			pros::delay(20);
-		}
-	});
+    // pros::lcd::print(3, "This is now opcontrol!")
+
     if (!autoSelected) controller.print(2, 1, autonSelectorMap[currentAutoSelection].first.c_str());
 	while (!autoSelected && !pros::c::competition_is_connected()) {
 		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)) {
@@ -146,22 +235,31 @@ void opcontrol() {
 
         // move the robot
         chassis->arcade(leftY, rightX);
-
-		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-			intake->load(127);
-		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
-			intake->scoreBottom(127);
-		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-			intake->scoreTop(127);
-		} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-			intake->scoreMiddle(127);
-		} else {
-			intake->stop();
+		if (!stopIntakeControl) {
+			if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+				intake->load(127);
+			} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+				intake->scoreBottom(127);
+			} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+				intake->scoreTop(127);
+			} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+				intake->scoreMiddle(127);
+			} else {
+				intake->stop();
+			}
 		}
+		// if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
+		// 	std::cout<<"X: "<<chassis->getPose().x<<", Y: "<<chassis->getPose().y<<", Heading: "<<wrap360(chassis->getPose().theta)<<std::endl;
+		// }
 
-		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
-			std::cout<<"X: "<<chassis->getPose().x<<", Y: "<<chassis->getPose().y<<", Heading: "<<wrap360(chassis->getPose().theta)<<std::endl;
-		}
+		// if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)) {
+		// 	pros::Task recordData([] {
+		// 	for (int i = 0; i < 150; i++) {
+		// 		std::cout<<"X: "<<chassis->getPose().x<<", Y: "<<chassis->getPose().y<<", Heading: "<<wrap360(chassis->getPose().theta)<<std::endl;
+		// 		pros::delay(20);
+		// 	}});
+			
+		// }
 		
 		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
 			static bool backLiftState = false;
@@ -181,7 +279,14 @@ void opcontrol() {
 			bunnyEars.set_value(bunnyEarsState);
 		}
 
-		// delay to save resources
+		// if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
+		// lemlib::Pose pose = chassis->getPose();
+
+		// pros::lcd::print(1, "X: %.4f in\n Y: %.4f in\n Heading: %.4f deg\n",
+		// 		pose.x, pose.y, pose.theta);
+
+        // }
+		//delay to save resources
         pros::delay(20);
     }
 }

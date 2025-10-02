@@ -17,8 +17,12 @@ float clamp(float output, float min, float max) {
 
 //Autons defined below
 void pidTuning() {
-	chassis->setPose(0, 0, 0);
-	chassis->turnToHeading(90, 10000);
+	intake->allianceColor =  Intake::RED;
+	intake->color_sorting_enabled = true;
+	intake->scoreTop(127);
+
+	// chassis->setPose(0, 0, 0);
+	// chassis->moveToPoint(0, 30, 2000);
 }
 
 void soloAWP() {

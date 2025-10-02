@@ -53,6 +53,8 @@ extern int currentAutoSelection;
 
 extern bool autoSelected;
 extern bool autoActive;
+extern bool stopIntakeControl;
+
 
 
 

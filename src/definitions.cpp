@@ -20,16 +20,16 @@ pros::Motor pickupStage(4, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUni
 pros::Motor backStage(-6, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::deg);
 pros::Motor topStage(20, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::deg);
 
-pros::Optical colorSensor(16);
+pros::Optical colorSensor(15);
 
 std::shared_ptr<Intake> intake = std::make_shared<Intake>(std::vector<pros::Motor*>{&pickupStage, &backStage, &topStage});
 
 pros::Imu imu(11); 
-pros::Rotation horizontal_sensor(1);
-pros::Rotation veritcal_sensor(-5);
+pros::Rotation horizontal_sensor(-5);
+pros::Rotation veritcal_sensor(1);
 
 // Chassis setup
-lemlib::Drivetrain drivetrain(&leftSide, &rightSide, 10.395, 3.25, 450, 2);
+lemlib::Drivetrain drivetrain(&leftSide, &rightSide, 10.395, 3.25, 450, 8);
 
 pros::adi::DigitalOut matchLoader('B');
 pros::adi::DigitalOut blockRush('A');
@@ -37,9 +37,9 @@ pros::adi::DigitalOut bunnyEars('H');
 
 // Tracking wheel setup
 lemlib::TrackingWheel horizontal_tracking_wheel
-    (&horizontal_sensor, 2, -6.528225);
+    (&horizontal_sensor, 2, 5.55-.8+.31);
 lemlib::TrackingWheel veritcal_tracking_wheel
-    (&veritcal_sensor, 2, 0.13161);
+    (&veritcal_sensor, 2, 1.1-.78-.35);
 
 // Odometer setup
 lemlib::OdomSensors odom(&veritcal_tracking_wheel, nullptr, 
@@ -48,9 +48,9 @@ lemlib::OdomSensors odom(&veritcal_tracking_wheel, nullptr,
 // Angular PID controller
 // Angular PID controller configuration
 lemlib::ControllerSettings angular_controller(
-    1.6, 
+    4, 
     0.25, 
-    9, 
+    30.5, 
     3, 
     0.1,
     50,
@@ -59,9 +59,9 @@ lemlib::ControllerSettings angular_controller(
     0);
 
 // Lateral PID controller
-lemlib::ControllerSettings lateral_controller(6.75, // proportional gain (kP)
+lemlib::ControllerSettings lateral_controller(5.4, // proportional gain (kP)
                                               0.125, // integral gain (kI)
-                                              18.75, // derivative gain (kD)
+                                              37.75, // derivative gain (kD)
                                               2.5, // anti windup
                                               1, // small error range, in degrees
                                               100, // small error range timeout, in milliseconds
@@ -96,11 +96,10 @@ std::map<int, std::pair<std::string, std::function<void()>>> autonSelectorMap = 
     {2, {"Solo AWP", soloAWP}},
     {3, {"Skills", skills}},
     {4, {"Solo AWP Right", soloAWPRight}},
-
-
+    {5, {"PID Tuning", pidTuning}},
 };
 
-int currentAutoSelection = 4;
+int currentAutoSelection = 5;
 bool autoSelected = false;
 bool autoActive = false;
 
