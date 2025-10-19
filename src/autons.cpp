@@ -5,6 +5,7 @@
 #include "definitions.hpp"
 #include "pros/optical.h"
 #include "pros/rtos.hpp"
+#include <algorithm>
 #include <format>
 
 float clamp(float output, float min, float max) {
@@ -19,287 +20,224 @@ float clamp(float output, float min, float max) {
 void pidTuning() {
 	intake->allianceColor =  Intake::RED;
 	intake->color_sorting_enabled = true;
+	intake->anti_jam_enabled = true;
 	intake->scoreTop(127);
 
 	// chassis->setPose(0, 0, 0);
-	// chassis->moveToPoint(0, 30, 2000);
+	// // chassis->moveToPoint(0, 30, 2000);
+	// chassis->turnToHeading(90, 1000);
 }
 
-void soloAWP() {
-	//set position and descore
-	chassis->setPose(0, 0, -90);
-	bunnyEars.set_value(true);
 
-	//drive up to match loader
-	chassis->moveToPoint(-29.52, 0.288, 1100, {.minSpeed = 20, .earlyExitRange = 0.5});
-	chassis->turnToPoint(-29.52, -16.391, 700);
+void elims7BallRedLeft() {
+	//set position and descore
+	chassis->setPose(0, 0, 0);
+	intake->allianceColor = Intake::RED;
+	intake->color_sorting_enabled = true;
+	intake->anti_jam_enabled = true;
+	bunnyEars.set_value(true);
+	
+	//intake 3 group
+	chassis->moveToPoint(-4.313, 20.992, 1500);
+	intake->load(127);
+	chassis->waitUntil(15);
 	matchLoader.set_value(true);
 
-	//load blocks
-	chassis->moveToPoint(-31.92, -16.391, 1500, {.maxSpeed = 70});
-	intake->load(127);
-	pros::delay(1250);
-	chassis->moveToPoint(-31.92, 0.288, 500, {.forwards = false});
-	chassis->moveToPoint(-31.92, -16.391, 1500, {.maxSpeed = 70});
+	//go to match loader
+	chassis->turnToPoint(-34.194, 3.451, 750, {});
+	chassis->moveToPoint(-34.194, 3.451, 1250, {});
+	chassis->turnToPoint(-33, -11.215, 700);
 
-	//back up and score
-	chassis->moveToPoint(-32.42, 31.044, 1600, {.forwards = false, .maxSpeed = 67}, false);
-	intake->stop();
-	bunnyEars.set_value(false);
-	chassis->tank(-60, -60);
+	//match load
+	chassis->moveToPoint(-33, -11.215, 1000, {});
+	chassis->waitUntilDone();
+	chassis->tank(30, 30);
+	pros::delay(1425);
+	chassis->cancelAllMotions();
+
+	//score
+	chassis->turnToPoint(-32, 27.031, 300, {.forwards = false, .minSpeed = 60, .earlyExitRange = 1});
+	chassis->moveToPoint(-32, 27.031, 1500, {.forwards = false, .maxSpeed = 60}, false);
+	intake->scoreTop(-127);
 	pros::delay(250);
+	intake->stop();
+	pros::delay(250);
+	bunnyEars.set_value(false);
+	chassis->waitUntilDone();
+	chassis->tank(-60, -60);
 	intake->scoreTop(127);
+	pros::delay(3500);
+
+	//ram w hood
+	chassis->tank(100, 100);
+	pros::delay(200);
+	chassis->tank(0, 0);
+	bunnyEars.set_value(true);
+	pros::delay(500);
+	chassis->moveToPoint(-32, 27.031, 700, {.forwards = false, .minSpeed = 127});
+	chassis->tank(-60, -60);
+}
+
+void elims7BallRedRight() {
+
+}
+
+void elims7BallBlueRight() {
+
+}
+
+void elims7BallBlueLeft() {
+
+}
+
+void soloAWPRedLeft() {
+	chassis->setPose(0, 0, -90);
+	intake->allianceColor = Intake::RED;
+	intake->color_sorting_enabled = true;
+	intake->anti_jam_enabled = true;
+	bunnyEars.set_value(true);
+
+	//go to first match loader and score in goal
+	chassis->moveToPoint(-32.733, 0, 1200);
+	chassis->turnToPoint(-33.5, -13.116, 500);
+	intake->load(127);
+	matchLoader.set_value(true);
+	chassis->moveToPoint(-33.5, -13.116, 700);
+	chassis->waitUntilDone();
+	chassis->tank(50, 50);
+	pros::delay(1450); 
+	chassis->moveToPoint(-33.5, 15.893, 700, {.forwards = false, .minSpeed = 40, .earlyExitRange = 1});
+	chassis->moveToPoint(-33.5, 27.893, 700, {.forwards = false, .maxSpeed = 60});
+	chassis->tank(-50, -50);
+	intake->scoreTop(127);
+	pros::delay(1000);
+	intake->stop();
+	chassis->tank(0, 0);
+
+	//go to 3 pile in score in mid goal
+	chassis->moveToPoint(-32.8, 9.49, 400, {.minSpeed = 100});
+	chassis->turnToPoint(0.09, 28.756, 400);
 	matchLoader.set_value(false);
+	intake->load(127);
+	chassis->moveToPoint(0.09, 28.756, 1300);
+	chassis->waitUntil(18);
+	matchLoader.set_value(true);
+	//part 
+	chassis->turnToPoint(10.438, 42.559, 500, {.forwards = false});
+	chassis->moveToPoint(10.438, 42.559, 800, {.forwards = false, .maxSpeed = 70});
+	matchLoader.set_value(false);
+	chassis->waitUntilDone();
+	intake->scoreMiddle(127);
 	pros::delay(2000);
 
-	//load 3 stack
-	chassis->moveToPoint(-34.365, 10.194,  500, {.minSpeed = 100, .earlyExitRange = 2});
-	chassis->moveToPoint(-20.365, 10.194,  1000, {.minSpeed = 100, .earlyExitRange = 2});
+	//go intake other 3 pile and go to match loader
+	chassis->moveToPoint(0, 42.559-14.438, 600);
+	chassis->turnToPoint(44.344, 25, 500);
+	chassis->moveToPoint(44.344, 25, 800);
+	chassis->waitUntil(20); 
+	matchLoader.set_value(true);
+	chassis->turnToPoint(10.061, 50.739, 600);
+	chassis->moveToPoint(10.061, 50.739, 900, {}, false);
+	matchLoader.set_value(false);
+	intake->scoreBottom(127);
 
-	chassis->turnToPoint(-3.038, 27.422, 700, {});
-	intake->load(127);
-
-	chassis->moveToPoint(-3.038, 27.422, 2500, {.maxSpeed = 35}, false);
-	pros::delay(250);
-	chassis->turnToPoint(13.5, 45.422, 700, {.forwards = false});
-	intake->stop();
-	intake->scoreBottom(-127);
-	pros::delay(500);
-	intake->stop();
-	chassis->moveToPoint(13.5, 45.422, 700, {.forwards = false, .maxSpeed = 50}, false);
-	intake->scoreMiddle(127);
-	// //back up and score in mid goal
-	// chassis->moveToPoint(1.438, 43.422, 1000, {.forwards = false}, false);
-	// intake->scoreMiddle(127);
-	// pros::delay(500);
-	// intake->stop();
-	// //turn to second 3 stack
-	// chassis->moveToPoint(31.632, 29.619, 750);
-	// intake->load(127);
-
-	// //score in low goal
-	// chassis->turnToPoint(14.953, 43.997, 500);
-	// chassis->moveToPoint(14.953, 43.997, 750, {}, false);
-	// intake->scoreBottom(127);
-	// pros::delay(500);
-	// intake->stop();
-
-	// //back up to other match loader
-	// chassis->moveToPoint(56.937, -0.575, 1000, {.forwards = false, .minSpeed = 20, .earlyExitRange = 2});
-	// chassis->turnToPoint(-55.787, -15.816, 600);
-
-	// //drive up and load blocks
-	// chassis->moveToPoint(-55.787, -15.816, 1000);
-	// matchLoader.set_value(true);
-	// intake->load(127);
+	// //intake from match load and score
+	// chassis->turnToPoint(54.637, -16.679, 600);
+	// chassis->moveToPoint(54.637, -16.679, 1000);
 	// chassis->waitUntilDone();
 	// pros::delay(750);
-
-	// //back up and score
-	// chassis->moveToPoint(55.787, 27.893, 1000, {.forwards = false}, false);
+	// chassis->moveToPoint(55.212, 27.893, 1500, {.forwards = false, .maxSpeed = 70}, false);
 	// intake->scoreTop(127);
 }
 
-void soloAWPRight() {
-	//set position and descore
-	chassis->setPose(0, 0, 90);
-	bunnyEars.set_value(true);
-
-	//drive up to match loader
-	chassis->moveToPoint(28.52, 0.288, 1100, {.minSpeed = 20, .earlyExitRange = 0.5});
-	chassis->turnToPoint(28.52, -16.391, 700);
-	matchLoader.set_value(true);
-
-	//load blocks
-	chassis->moveToPoint(30.92, -16.391, 1500, {.maxSpeed = 70});
-	intake->load(127);
-	pros::delay(1250);
-	chassis->moveToPoint(31.92, 0.288, 500, {.forwards = false});
-	chassis->moveToPoint(31.92, -16.391, 1500, {.maxSpeed = 70});
-
-	//back up and score
-	chassis->moveToPoint(32.42, 31.044, 1600, {.forwards = false, .maxSpeed = 67}, false);
-	intake->stop();
-	bunnyEars.set_value(false);
-	chassis->tank(-60, -60);
-	pros::delay(250);
-	intake->scoreTop(127);
-	matchLoader.set_value(false);
-	pros::delay(2000);
-
-	//load 3 stack
-	chassis->moveToPoint(34.365, 10.194,  500, {.minSpeed = 100, .earlyExitRange = 2});
-	chassis->moveToPoint(20.365, 10.194,  1000, {.minSpeed = 100, .earlyExitRange = 2});
-
-	chassis->turnToPoint(3.038, 27.422, 700, {});
-	intake->load(127);
-
-	chassis->moveToPoint(3.038, 27.422, 2500, {.maxSpeed = 35}, false);
-	pros::delay(250);
-	chassis->turnToPoint(-13.5, 45.422, 700, {.forwards = false});
-	intake->stop();
-	intake->scoreBottom(-127);
-	pros::delay(500);
-	intake->stop();
-	chassis->moveToPoint(-15, 45.422, 700, {.forwards = false, .maxSpeed = 50}, false);
-	intake->scoreBottom(127);
-
-}
-
-void elims9Ball() {
-	//set position and descore
-	chassis->setPose(0, 0, 149.87);
-	bunnyEars.set_value(true);
-
-	// //initial rush movements
-	// chassis->moveToPoint(-10, 15, 2000, {.forwards = false, .minSpeed = 100, .earlyExitRange = 2});
-	// chassis->moveToPoint(-10, 29, 2000, {.forwards = false, .minSpeed = 100, .earlyExitRange = 0.5});
-	// chassis->moveToPoint(-11.35, 38.75, 1000, {.forwards = false, .minSpeed = 100, .earlyExitRange = 1});
-
-	// //turn and grab blocks
-	// chassis->swingToHeading(90, lemlib::DriveSide::RIGHT, 700, {}, false);
-	// chassis->moveToPoint(-20, 47, 750, {.forwards = false}, false);
-	// // chassis->waitUntilDone();
-	// // pros::delay(200);
-	// blockRush.set_value(true);
-
-	//initial rush movements
-	chassis->moveToPoint(-10, 15, 2000, {.forwards = false, .minSpeed = 100, .earlyExitRange = 2});
-	chassis->moveToPoint(-10, 29, 2000, {.forwards = false, .minSpeed = 100, .earlyExitRange = 0.5});
-	chassis->moveToPoint(-12.55, 34.85, 1000, {.forwards = false, .minSpeed = 50, .earlyExitRange = 1});
-
-	//turn and grab blocks
-	chassis->swingToHeading(90, lemlib::DriveSide::RIGHT, 700, {}, false);
-	chassis->moveToPoint(-20, 46, 750, {.forwards = false}, false);
-	// chassis->waitUntilDone();
-	// pros::delay(200);
-	blockRush.set_value(true);
-
-	//grab 3 stack
-	pros::delay(500);
-	chassis->moveToPoint(8.5, 10, 1500, {.maxSpeed = 40, .minSpeed = 20, .earlyExitRange = 4});
-	intake->load(127);
-	chassis->moveToPoint(9.75, 10, 1500, {.maxSpeed = 40}, false);
-	pros::delay(250);
-
-
-
-	// //move to match load
-	// chassis->turnToPoint(-21.606, -0.052, 750, {.forwards = false, .maxSpeed = 65, .minSpeed = 40, .earlyExitRange = 10}, false);
-	// chassis->moveToPoint(-21.606, 3.052, 1950, {.forwards = false, .maxSpeed = 80, .minSpeed = 20, .earlyExitRange = 2}, false);
-	// chassis->turnToHeading(90, 500, {.maxSpeed = 60}, false);
-	// pros::delay(250);
-	// blockRush.set_value(false);
-	// pros::delay(250);
-	chassis->turnToHeading(90, 1000, {.maxSpeed = 60}, false);
-	intake->stop();
-	blockRush.set_value(false);
-	pros::delay(250);
-	chassis->moveToPoint(15, 10.5, 700);
-	chassis->turnToPoint(-30, 5, 500);
-	chassis->moveToPoint(-27.5, 5, 1500, {.maxSpeed = 80});
-	intake->load(127);
-
-
-
-	// //setup rush
-	// chassis->moveToPoint(-10, 0, 1500);
-	// chassis->turnToPoint(-28, 16, 250, {.forwards = false});
-	// intake->stop();
-	
-
-	// chassis->moveToPoint(-28, 16, 1000, {.forwards = false, .minSpeed = 30, .earlyExitRange = 4});
-	chassis->turnToPoint(-32, -11.5, 500, {}, false);
-	//grab match loads
-	// chassis->moveToPoint(-30, 0.5, 1000, {.maxSpeed = 8});
-	// intake->load(127);
-	// chassis->waitUntilDone();
-	matchLoader.set_value(true);
-	pros::delay(250);
-	chassis->moveToPoint(-32, -11.5, 1000, {.maxSpeed = 88});
-	chassis->waitUntilDone();
-	pros::delay(500);
-	//score
-	chassis->moveToPoint(-29, 26.593, 950, {.forwards = false, .maxSpeed = 70, .minSpeed = 40}, false);
-	chassis->tank(-60, -60);
-	intake->scoreTop(127);
-
-
-	
-
+void soloAWPBlueLeft() {
 	
 }
 
 void skills() {
-	chassis->setPose(0, 0, -90);
+	chassis->setPose(6.039, 11.502, 0); //don't ask questions.
+	intake->color_sorting_enabled = false;
 	bunnyEars.set_value(true);
 
-	//drive up to match loader
-	chassis->moveToPoint(-29.52, 0.288, 1100, {.minSpeed = 20, .earlyExitRange = 0.5});
-	chassis->turnToPoint(-29.52, -16.391, 700);
+	//grab one red block
+	chassis->turnToHeading(65, 700);
+	chassis->moveToPoint(8.641, 29.469, 1500, {.maxSpeed = 80});
+	intake->load(127);
+
+	//go to and match load
+	chassis->turnToPoint(30.233, 13.327, 600);
+	chassis->moveToPoint(30.233, 13.327, 1000);
+	chassis->turnToPoint(30.233, -3, 600);
 	matchLoader.set_value(true);
-
-	//load blocks
-	chassis->moveToPoint(-34.92, -16.391, 1000, {.maxSpeed = 70});
 	intake->load(127);
-	pros::delay(1250);
-	chassis->moveToPoint(-32.92, 0.288, 500, {.forwards = false});
-	chassis->moveToPoint(-32.92, -16.391, 1000, {.maxSpeed = 50});
-	chassis->moveToPoint(-32.92, 0.288, 500, {.forwards = false});
-	chassis->moveToPoint(-32.92, -16.391, 1000, {.maxSpeed = 50});
-	chassis->moveToPoint(-32.92, 0.288, 500, {.forwards = false});
-	chassis->moveToPoint(-32.92, -16.391, 1000, {.maxSpeed = 50});
+	chassis->moveToPoint(30.233, -3, 800);
 	chassis->waitUntilDone();
-	pros::delay(500);
-	chassis->moveToPoint(-32.53, 31.044, 1600, {.forwards = false, .maxSpeed = 47}, false);
+	chassis->tank(20, 20);
+	pros::delay(1750);
+
+	//score
+	chassis->moveToPoint(30.033, 35.945, 1500, {.forwards = false, .maxSpeed = 70});
 	intake->stop();
+	chassis->waitUntilDone();
 	chassis->tank(-60, -60);
-	pros::delay(250);
 	intake->scoreTop(127);
+	pros::delay(3500);
+	chassis->tank(0, 0);
+	chassis->cancelAllMotions();
+	chassis->moveToPoint(30.033, 23, 2500, {.maxSpeed = 50});
+	chassis->moveToPoint(30.033, 35.945, 1500, {.forwards = false, .maxSpeed = 50});
+
+	//go to other match loader
+	chassis->moveToPoint(40.147, 12.94, 1000);
 	matchLoader.set_value(false);
-	pros::delay(3250);
-
-	chassis->moveToPoint(-20.365, 10.194,  1000, {.minSpeed = 70, .earlyExitRange = 2});
-
-	chassis->turnToPoint(2.438, 32.422, 700, {});
+	chassis->turnToPoint(47.048, 78.217, 500, {.forwards = false});
+	chassis->moveToPoint(47.048, 78.217, 1500, {.forwards = false});
+	chassis->moveToPoint(30.933, 110.136, 2500, {.forwards = false});
+	chassis->turnToPoint(30.933, 129.115, 1000);
+	matchLoader.set_value(true);
 	intake->load(127);
+	chassis->moveToPoint(30.933, 129.115, 1000, {.maxSpeed = 80}, false);
+	chassis->tank(20, 20);
+	pros::delay(1500);
 
-	chassis->moveToPoint(2.438, 32.422, 3500, {.maxSpeed = 30});
-
-	chassis->turnToPoint(-24.893, 7.273, 700, {.forwards = false});
+	//score
+	chassis->moveToPoint(30.733, 84.543, 1500, {.forwards = false, .maxSpeed = 70}, false);
+	chassis->tank(-60, -60);
+	intake->scoreTop(127);
+	pros::delay(1050);
+	chassis->cancelAllMotions();
+	chassis->tank(0, 0);
 	intake->stop();
-	chassis->moveToPoint(-24.893, 7.273, 1700, {.forwards = false});
-	chassis->turnToPoint(-29.577, 27.51, 700, {.forwards = false});
-	chassis->moveToPoint(-29.577, 27.51, 2000, {.forwards = false, .maxSpeed = 55}, false);
+	bunnyEars.set_value(true);
+
+	//go to third match loader
+	chassis->moveToPoint(30.733, 103.784, 1000);
+	matchLoader.set_value(false);
+	chassis->turnToPoint(-64.662, 103.784, 700);
+	chassis->moveToPoint(-64.662, 103.784, 2500);
+
+	//unload match loader
+	chassis->turnToPoint(-63.662, 129.115, 850);
+	intake->load(127);
+	matchLoader.set_value(true);
+	chassis->moveToPoint(-63.662, 129.115, 1000);
+	chassis->waitUntilDone();
+	chassis->tank(20, 20);
+	pros::delay(1750);
+	chassis->tank(0, 0);
+	intake->stop();
+
+	//score
+	chassis->moveToPoint(-63.662, 82.817, 1400, {.forwards = false, .maxSpeed = 80}, false);
 	chassis->tank(-60, -60);
 	intake->scoreTop(127);
 	pros::delay(2500);
-
-	chassis->moveToPoint(-34, 10, 1000);
 	intake->stop();
-	chassis->turnToPoint(63.019, 3.795, 500);
-	chassis->moveToPoint(63.019, 3.795, 2000, {});
-	chassis->turnToPoint(63.387, -27.075, 500);
-	matchLoader.set_value(true);
-	chassis->moveToPoint(63.387, -27.075, 1500, {.maxSpeed = 70});
-	intake->load(127);
-	chassis->moveToPoint(63.92, 0.288, 500, {.forwards = false});
-	chassis->moveToPoint(63.92, -26.391, 1000, {.maxSpeed = 50});
-	chassis->moveToPoint(63.92, 0.288, 500, {.forwards = false});
-	chassis->moveToPoint(63.92, -26.391, 1000, {.maxSpeed = 50});
-	chassis->moveToPoint(63.019, 29.091, 1500, {.forwards = false, .maxSpeed = 55}, false);
-	intake->stop();
-	chassis->tank(-60, -60);
-	pros::delay(250);
-	intake->scoreTop(127);
-	matchLoader.set_value(false);
-	pros::delay(2250);
+	chassis->tank(0, 0);
 
-	chassis->moveToPoint(63.703, 14.229, 1000);
-	chassis->moveToPoint(26.877, -25.596, 1000);
-	chassis->turnToPoint(7.273, -25.913, 600, {.forwards = false});
-	chassis->moveToPoint(7.273, -25.913, 1000, {.forwards = false});
-	chassis->waitUntil(15);
-	blockRush.set_value(false);
+
+
+
+
 
 }

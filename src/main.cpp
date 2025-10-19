@@ -68,7 +68,7 @@ void initialize() {
 	// std::cout<<"\n\n\n"<<std::endl;
 
 	colorSensor.set_led_pwm(100);
-	intake->allianceColor =  Intake::RED;
+	intake->allianceColor = Intake::RED;
 	intake->color_sorting_enabled = true;
 	handler = new SubsystemHandler({intake});
 
@@ -78,26 +78,28 @@ void initialize() {
 		std::vector<int> prevVelocity = intake->get_actual_velocity();
 		bool in_threshold = false;
 		while (1) {
-			for (int i = 0; i < 3; i++) {
-				if (intake->get_target_velocity()[i]-intake->get_actual_velocity()[i] > 590) in_threshold = true;
+			if (intake->anti_jam_enabled) {
+				for (int i = 0; i < 3; i++) {
+					if (intake->get_target_velocity()[i]-intake->get_actual_velocity()[i] > 550) in_threshold = true;
+				}
+				// std::cout<<"prev velo:  " << prevVelocity<<std::endl;
+
+				auto errors = vectorCompare(intake->get_target_velocity(), intake->get_actual_velocity());
+				auto nearZero = vectorCompare(prevVelocity, {0, 0, 0});
+
+				if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)) {
+					std::cout<<"Timestamp: "<<pros::millis()<<"\n\tin_threshold: "<<in_threshold<<"\n\terrors: "<<*std::max_element(errors.begin(), errors.end())<<"\n\tnearZero: "<<*std::max_element(nearZero.begin(), nearZero.end())<<std::endl;
+					std::cout<<"\tPrev Velocity 1, 2, 3: "<<prevVelocity[0]<<", "<<prevVelocity[1]<<", "<<prevVelocity[2]<<std::endl;
+					std::cout<<"\tCurrent Velocity 1, 2, 3: "<<intake->get_actual_velocity()[0]<<", "<<intake->get_actual_velocity()[1]<<", "<<intake->get_actual_velocity()[2]<<std::endl;
+					std::cout<<"\t\tTRIGGER ANTI JAM: "<<(in_threshold && *std::max_element(errors.begin(), errors.end())>100 && *std::max_element(nearZero.begin(), nearZero.end())<100)<<std::endl;
+				}
+				if (in_threshold && *std::max_element(errors.begin(), errors.end())>100 && *std::max_element(nearZero.begin(), nearZero.end())<100) {
+					intake->antiJam();
+					in_threshold = false;
+				} 
+				prevVelocity = intake->get_actual_velocity();
+				pros::delay(20);
 			}
-			// std::cout<<"prev velo:  " << prevVelocity<<std::endl;
-
-			auto errors = vectorCompare(prevVelocity, intake->get_actual_velocity());
-			auto nearZero = vectorCompare(prevVelocity, {0, 0, 0});
-
-			if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN))  {
-				std::cout<<"Timestamp: "<<pros::millis()<<", in_threshold: "<<in_threshold<<", vectorCompare: "<<*std::max_element(errors.begin(), errors.end())<<std::endl;
-				std::cout<<"\tPrev Velocity 1, 2, 3: "<<prevVelocity[0]<<", "<<prevVelocity[1]<<", "<<prevVelocity[2]<<std::endl;
-				std::cout<<"\tCurrent Velocity 1, 2, 3: "<<intake->get_actual_velocity()[0]<<", "<<intake->get_actual_velocity()[1]<<", "<<intake->get_actual_velocity()[2]<<std::endl;
-			}
-
-			if (intake->anti_jam_enabled && in_threshold && *std::max_element(errors.begin(), errors.end())>100 && *std::max_element(nearZero.begin(), nearZero.end())<100) {
-				intake->antiJam();
-				in_threshold = false;
-			} 
-			prevVelocity = intake->get_actual_velocity();
-			pros::delay(20);
 		}
 	});
 
@@ -111,18 +113,18 @@ void initialize() {
 			//determine if the ring is red or blue by comparing RGB values
 			Intake::blockColor currentBlock = UNKNOWN;
 			double hue = colorSensor.get_hue();
-			if (colorSensor.get_proximity() > 90) {
+			if (colorSensor.get_proximity() > 90 && intake->color_sorting_enabled) {
 				static int j = 0;
 				if (hue < 65 && hue > 0 && intake->allianceColor == BLUE) {
 					currentBlock = RED;
 					controller.print(0, 0, "red");
-					std::cout<<"registered red"<<std::endl;
+					// std::cout<<"registered red"<<std::endl;
 				} 
 				
 				if (hue < 300 && hue > 75 && intake->allianceColor == RED) {
 					currentBlock = BLUE;
 					controller.print(0, 0, "blu");
-					std::cout<<"registered blue"<<std::endl;
+					// std::cout<<"registered blue"<<std::endl;
 
 				}
 				j++;
@@ -132,7 +134,7 @@ void initialize() {
 				// std::cout<<"colorSortEnabled: "<<intake->color_sorting_enabled<<std::endl;
 
 
-				if (intake->color_sorting_enabled == true && intake->allianceColor != currentBlock && currentBlock != UNKNOWN) toSort = true;
+				if (intake->color_sorting_enabled && intake->allianceColor != currentBlock && currentBlock != UNKNOWN) toSort = true;
 				
 				pros::lcd::print(1, "toSort: %i", toSort);
 
@@ -140,10 +142,11 @@ void initialize() {
 					static int i = 0;
 					i++;
 					controller.print(1, 3 , "%d", i);
-					stopIntakeControl = true;
+					// stopIntakeControl = true;
+					
 					intake->colorSort();
 					stopIntakeControl = false;
-					if (toSort) toSort = false; 
+					toSort = false; 
 				}
 			}
 			pros::delay(10);
@@ -201,6 +204,8 @@ void autonomous() {
 
 void opcontrol() {
     autoActive = false;
+	intake->color_sorting_enabled = false;
+	intake->anti_jam_enabled = true;
     chassis->cancelAllMotions();
 	colorSensor.set_led_pwm(100);
     pros::delay(20);
@@ -235,19 +240,27 @@ void opcontrol() {
 
         // move the robot
         chassis->arcade(leftY, rightX);
-		if (!stopIntakeControl) {
+		// if (!stopIntakeControl) {
 			if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
 				intake->load(127);
-			} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+			} else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
+				intake->doubleParkMacro();
+			} else if (controller.get_digital_new_release(pros::E_CONTROLLER_DIGITAL_A)) {
+				intakeLift.set_value(true);
+			} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
 				intake->scoreBottom(127);
+			} else if (controller.get_digital_new_release(pros::E_CONTROLLER_DIGITAL_B)) {
+				intakeLift.set_value(false);	
+			} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+				intake->outake(127);	
 			} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
 				intake->scoreTop(127);
 			} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
 				intake->scoreMiddle(127);
-			} else {
+			} else {   
 				intake->stop();
 			}
-		}
+		// }
 		// if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
 		// 	std::cout<<"X: "<<chassis->getPose().x<<", Y: "<<chassis->getPose().y<<", Heading: "<<wrap360(chassis->getPose().theta)<<std::endl;
 		// }
@@ -261,17 +274,14 @@ void opcontrol() {
 			
 		// }
 		
-		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
-			static bool backLiftState = false;
-			backLiftState = !backLiftState;
-			blockRush.set_value(backLiftState);
-		}
+		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)) intake->clearQueue();
 
 		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
 			static bool scraperState = false;
 			scraperState = !scraperState;
 			matchLoader.set_value(scraperState);
 		}
+
 
 		if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1)) {
 			static bool bunnyEarsState = false;
@@ -280,10 +290,10 @@ void opcontrol() {
 		}
 
 		// if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
-		// lemlib::Pose pose = chassis->getPose();
+		lemlib::Pose pose = chassis->getPose();
 
-		// pros::lcd::print(1, "X: %.4f in\n Y: %.4f in\n Heading: %.4f deg\n",
-		// 		pose.x, pose.y, pose.theta);
+		pros::lcd::print(1, "X: %.2f in\n Y: %.2f in\n Heading: %.2f deg\n",
+				pose.x, pose.y, pose.theta);
 
         // }
 		//delay to save resources

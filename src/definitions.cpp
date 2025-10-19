@@ -1,5 +1,6 @@
 #include "definitions.hpp"
 #include "pros/adi.hpp"
+#include "pros/distance.hpp"
 #include "pros/motor_group.hpp"
 #include "autons.hpp"
 #include "main.h"
@@ -21,6 +22,7 @@ pros::Motor backStage(-6, pros::v5::MotorGears::green, pros::v5::MotorEncoderUni
 pros::Motor topStage(20, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::deg);
 
 pros::Optical colorSensor(15);
+pros::Distance doubleParkDist(19);
 
 std::shared_ptr<Intake> intake = std::make_shared<Intake>(std::vector<pros::Motor*>{&pickupStage, &backStage, &topStage});
 
@@ -29,11 +31,12 @@ pros::Rotation horizontal_sensor(-5);
 pros::Rotation veritcal_sensor(1);
 
 // Chassis setup
-lemlib::Drivetrain drivetrain(&leftSide, &rightSide, 10.395, 3.25, 450, 8);
+lemlib::Drivetrain drivetrain(&leftSide, &rightSide, 10.395, 3.25, 450, 12);
 
 pros::adi::DigitalOut matchLoader('B');
-pros::adi::DigitalOut blockRush('A');
+pros::adi::DigitalOut intakeLift('A');
 pros::adi::DigitalOut bunnyEars('H');
+pros::adi::DigitalOut doublePark('F');
 
 // Tracking wheel setup
 lemlib::TrackingWheel horizontal_tracking_wheel
@@ -60,7 +63,7 @@ lemlib::ControllerSettings angular_controller(
 
 // Lateral PID controller
 lemlib::ControllerSettings lateral_controller(5.4, // proportional gain (kP)
-                                              0.125, // integral gain (kI)
+                                              0,//0.125, // integral gain (kI)
                                               37.75, // derivative gain (kD)
                                               2.5, // anti windup
                                               1, // small error range, in degrees
@@ -92,14 +95,17 @@ std::shared_ptr<lemlib::Chassis> chassis(new lemlib::Chassis(drivetrain, lateral
 // Auton Selector setup
 
 std::map<int, std::pair<std::string, std::function<void()>>> autonSelectorMap = {
-    {1, {"Elims Block Rush", elims9Ball}},
-    {2, {"Solo AWP", soloAWP}},
-    {3, {"Skills", skills}},
-    {4, {"Solo AWP Right", soloAWPRight}},
-    {5, {"PID Tuning", pidTuning}},
+    {1, {"PID Tuning", pidTuning}},
+    {2, {"Elims 7 Red Left", elims7BallRedLeft}},
+    {3, {"Elims 7 Red Right", elims7BallRedRight}},
+    {4, {"Elims 7 Blue Right", elims7BallBlueRight}},
+    {5, {"Elims 7 Blue Left", elims7BallBlueLeft}},
+    {6, {"Solo AWP Red", soloAWPRedLeft}},
+    {7, {"Solo AWP Blue", soloAWPBlueLeft}},
+    {8, {"Skills", skills}}
 };
 
-int currentAutoSelection = 5;
+int currentAutoSelection = 8;
 bool autoSelected = false;
 bool autoActive = false;
 

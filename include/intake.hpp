@@ -9,7 +9,7 @@ private:
     std::vector<pros::Motor*> motors;
 
     const int ANTI_JAM_DELAY_MS = 500;
-    const int COLOR_SORT_DELAY_MS = 250;
+    const int COLOR_SORT_DELAY_MS = 850;
 
     enum scoreConfig {STOP, LOAD, TOP, MIDDLE, BOTTOM };
     scoreConfig intakeScoreConfig = TOP;
@@ -45,7 +45,9 @@ public:
     void scoreBottom(int velocity);
     void scoreTop(int velocity);
     void scoreMiddle(int velocity);
+    void outake(int velocity);
     void stop();
+    void doubleParkMacro();
 
 };
 

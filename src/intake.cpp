@@ -55,6 +55,7 @@ void Intake::move(int velocity) {
 void Intake::load(int velocity) {
     intakeScoreConfig = LOAD;
     this->functionID = 1;
+    doublePark.set_value(false);
     bunnyEars.set_value(true);
     move(velocity);
 }
@@ -68,40 +69,47 @@ std::vector<int> Intake::get_target_velocity() {
 }
 
 void Intake::antiJam() {
-    this->addFunction([this] {
-        pickupStage->move(-127 * pickupSgn);
-        backStage->move(-127 * backSgn);
-        topStage->move(-127 * topSgn);
+    // this->addFunction([this] {
+        // pickupStage->move(-127 * pickupSgn);
+        // backStage->move(-127 * backSgn);
+        auto PREV_SCORE_CONFIG = intakeScoreConfig;
+        intakeScoreConfig = BOTTOM;
+        this->setSigns();
         pros::delay(ANTI_JAM_DELAY_MS);
-        pickupStage->move(127 * pickupSgn);
-        backStage->move(127 * backSgn);
-        topStage->move(127 * topSgn);
-    });
+        intakeScoreConfig = PREV_SCORE_CONFIG;
+        this->setSigns();
+        // pickupStage->move(127 * pickupSgn);
+        // backStage->move(127 * backSgn);
+    // });
 }
 
 void Intake::colorSort() {
-    this->addFunction([this] {
+    // this->addFunction([this] {
 
         topStage->move(-127*topSgn);
+        // this->addFunction([this] {
         pros::delay(COLOR_SORT_DELAY_MS);
-        topStage->move(0*topSgn);
+        // });
+        topStage->move(127*topSgn);
         std::cout<<"triggered sort function"<<std::endl;
-    });
+    // });
 }
 
 void Intake::scoreBottom(int velocity) {
     intakeScoreConfig = BOTTOM;
     this->functionID = 2;
-    // intakeLift.set_value(false);
+    doublePark.set_value(false);
     move(velocity);
 }
 
 void Intake::scoreTop(int velocity) {
-        intakeScoreConfig = TOP;
-        this->functionID = 3;
-        bunnyEars.set_value(false);
-        // pros::delay(250);
-        move(velocity);
+    intakeScoreConfig = TOP;
+    this->functionID = 3;
+    bunnyEars.set_value(false);
+    intakeLift.set_value(false);
+    doublePark.set_value(false);
+    // pros::delay(250);
+    move(velocity);
 }
 
 
@@ -109,12 +117,38 @@ void Intake::scoreMiddle(int velocity) {
     intakeScoreConfig = MIDDLE;
     this->functionID = 4;
     bunnyEars.set_value(false);
+    intakeLift.set_value(false);
+    doublePark.set_value(false);
     move(velocity);
 }
+
+void Intake::outake(int velocity) {
+    intakeScoreConfig = BOTTOM;
+    this->functionID = 6;
+    doublePark.set_value(false);
+    move(velocity);
+}
+
 
 void Intake::stop() {
     intakeScoreConfig = STOP;
     this->functionID = 5;
-   // bunnyEars.set_value(false);
     move(0);
+}
+
+void Intake::doubleParkMacro() {
+    // this->functionID = 7;
+    // this->addFunction([this] {
+    int timeout = 0;
+    while ((doubleParkDist.get_distance() > 65 || doubleParkDist.get_distance() < 30) && timeout < 2000) {
+        backStage->move(-127);
+        pickupStage->move(-68);
+        pros::delay(10);
+        timeout += 10;
+    }
+    backStage->move(0);
+    pickupStage->move(0);
+    if (timeout < 2000) doublePark.set_value(true);
+    //     this->clearQueue();
+    // });
 }

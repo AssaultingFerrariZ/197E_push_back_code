@@ -3,6 +3,7 @@
 #include "lemlib/chassis/chassis.hpp"
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "pros/adi.hpp"
+#include "pros/distance.hpp"
 #include "pros/imu.hpp"
 #include "pros/motor_group.hpp"
 #include "pros/motors.hpp"
@@ -30,6 +31,7 @@ extern pros::Motor backStage;
 extern pros::Motor topStage;
 
 extern pros::Optical colorSensor;
+extern pros::Distance doubleParkDist;
 
 extern std::shared_ptr<Intake> intake;
 
@@ -39,9 +41,9 @@ extern lemlib::ExpoDriveCurve throttle_curve;
 extern lemlib::ExpoDriveCurve steer_curve;
 
 extern pros::adi::DigitalOut matchLoader;
-extern pros::adi::DigitalOut blockRush;
+extern pros::adi::DigitalOut doublePark;
 extern pros::adi::DigitalOut bunnyEars;
-
+extern pros::adi::DigitalOut intakeLift;
 
 
 extern std::shared_ptr<lemlib::Chassis> chassis;

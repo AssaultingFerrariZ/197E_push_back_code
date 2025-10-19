@@ -4,9 +4,16 @@
 
 void pidTuning();
 void soloAWP();
-void elims9Ball();
+void elims7BallRedRight();
+void elims7BallRedLeft();
+void elims7BallBlueLeft();
+void elims7BallBlueRight();
+void soloAWPRedRight();
+void soloAWPRedLeft();
+void soloAWPBlueRight();
+void soloAWPBlueLeft();
 void skills();
-void soloAWPRight();
+
 
 float wrap360(float angle);
 float clamp(float output, float min, float max);
