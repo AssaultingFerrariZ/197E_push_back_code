@@ -42,13 +42,16 @@ extern lemlib::ExpoDriveCurve steer_curve;
 
 extern pros::adi::DigitalOut matchLoader;
 extern pros::adi::DigitalOut doublePark;
-extern pros::adi::DigitalOut bunnyEars;
+extern pros::adi::DigitalOut hood;
 extern pros::adi::DigitalOut intakeLift;
-
+extern pros::adi::DigitalOut odomLift;
+extern pros::adi::DigitalOut descore;
 
 extern std::shared_ptr<lemlib::Chassis> chassis;
 
 extern pros::Controller controller;
+extern pros::Controller liveScorer;
+
 
 extern std::map<int, std::pair<std::string, std::function<void()>>> autonSelectorMap;
 extern int currentAutoSelection;

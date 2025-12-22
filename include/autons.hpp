@@ -8,9 +8,9 @@ void elims7BallRedRight();
 void elims7BallRedLeft();
 void elims7BallBlueLeft();
 void elims7BallBlueRight();
-void soloAWPRedRight();
+void halfAWPRedLeft();
+void halfAWPBlueLeft();
 void soloAWPRedLeft();
-void soloAWPBlueRight();
 void soloAWPBlueLeft();
 void skills();
 
